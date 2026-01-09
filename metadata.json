@@ -1,0 +1,5 @@
+{
+  "name": "LogiFix - Gestão de Ocorrências Logísticas",
+  "description": "Sistema de controle de ocorrências de transporte, kanban de devoluções e auditoria financeira de fretes.",
+  "requestFramePermissions": []
+}
