@@ -12,20 +12,7 @@ const FinishedOccurrences: React.FC<FinishedOccurrencesProps> = ({ occurrences, 
     const [searchTerm, setSearchTerm] = useState('');
     const [restoreModalId, setRestoreModalId] = useState<string | null>(null);
 
-    // Filter DONE and ARCHIVED status
-    const finishedItems = occurrences.filter(o =>
-        o.status === OccurrenceStatus.DONE ||
-        o.status === OccurrenceStatus.ARCHIVED
-    );
-
-    // Filter based on search
-    const filteredItems = finishedItems.filter(o =>
-        o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.recipientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.trackingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.invoiceNumber.includes(searchTerm)
-    );
-
+    // Helper functions
     const getCarrierName = (id: string) => carriers.find(c => c.id === id)?.name || 'N/A';
     const getCarrierColor = (id: string) => carriers.find(c => c.id === id)?.color || '#94a3b8';
 
@@ -40,6 +27,24 @@ const FinishedOccurrences: React.FC<FinishedOccurrencesProps> = ({ occurrences, 
             return dateString;
         }
     };
+
+    // Filter DONE and ARCHIVED status
+    const finishedItems = occurrences.filter(o =>
+        o.status === OccurrenceStatus.DONE ||
+        o.status === OccurrenceStatus.ARCHIVED
+    );
+
+    // Filter based on search
+    const filteredItems = finishedItems.filter(o => {
+        const carrierName = getCarrierName(o.carrierId).toLowerCase();
+        const search = searchTerm.toLowerCase();
+
+        return o.id.toLowerCase().includes(search) ||
+            o.recipientName.toLowerCase().includes(search) ||
+            o.trackingCode.toLowerCase().includes(search) ||
+            o.invoiceNumber.includes(search) ||
+            carrierName.includes(search);
+    });
 
     return (
         <div className="flex flex-col h-full bg-slate-50 p-6">
@@ -60,7 +65,7 @@ const FinishedOccurrences: React.FC<FinishedOccurrencesProps> = ({ occurrences, 
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Buscar ID, Cliente ou Pedido..."
+                        placeholder="Buscar ID, Cliente, Pedido ou Transportadora..."
                         className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

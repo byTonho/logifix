@@ -755,7 +755,7 @@ const Kanban: React.FC<KanbanProps> = ({
                   <div className="flex items-center gap-3">
                     <DollarSign size={18} />
                     <div className="text-left">
-                      <span className={`font-medium text-sm block ${selectedCard.flagInvoiceDispute ? 'font-bold' : ''}`}>Contestar Fatura</span>
+                      <span className={`font-medium text-sm block ${selectedCard.flagInvoiceDispute ? 'font-bold' : ''}`}>Contestar Frete</span>
                       <span className="text-[10px] opacity-75">Solicitar remoção da cobrança</span>
                     </div>
                   </div>

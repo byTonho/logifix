@@ -327,7 +327,9 @@ const App: React.FC = () => {
         flag_lost_return: updated.flagLostReturn,
         flag_damage: updated.flagDamage,
         responsible_users: updated.responsibleUsers,
-        finished_at: updated.status === 'Concluído' ? new Date().toISOString() : null
+        finished_at: (updated.status === 'Concluído' || updated.status === 'Arquivado')
+          ? (updated.finishedAt || new Date().toISOString())
+          : null
       })
       .eq('id', updated.id);
 
