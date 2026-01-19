@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, LayoutDashboard, Trello, PackagePlus, Menu, X, Users, ScrollText, LogOut, UserCircle } from 'lucide-react';
+import { Truck, LayoutDashboard, Trello, PackagePlus, Menu, X, Users, ScrollText, LogOut, UserCircle, CheckCircle } from 'lucide-react';
 import { Occurrence, User, UserRole } from '../types';
 
 interface LayoutProps {
@@ -23,11 +23,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, setActivePage, oc
     .filter(o => o.flagLostReturn)
     .reduce((acc, curr) => acc + (curr.invoiceValue || 0), 0);
 
+  const damageTotal = occurrences
+    .filter(o => o.flagDamage)
+    .reduce((acc, curr) => acc + (curr.invoiceValue || 0), 0);
+
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, requiredRole: null },
     { id: 'kanban', label: 'Ocorrências', icon: Trello, requiredRole: null },
+    { id: 'finished-occurrences', label: 'OC. Finalizadas', icon: CheckCircle, requiredRole: null },
     { id: 'carriers', label: 'Transportadoras', icon: Truck, requiredRole: null },
     { id: 'new-occurrence', label: 'Nova Reclamação', icon: PackagePlus, requiredRole: null },
     // Master Only Pages
@@ -44,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, setActivePage, oc
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-white border-r border-slate-800 shrink-0">
         <div className="p-6 border-b border-slate-800 flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Truck size={18} className="text-white" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">LogiFix - byTonho</h1>
@@ -95,6 +100,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, setActivePage, oc
               <span className="text-xs text-slate-400 mb-1">Extravios (Produtos)</span>
               <span className="text-red-400 font-bold text-sm">{formatCurrency(lostTotal)}</span>
             </div>
+
+            <div className="w-full h-px bg-slate-700"></div>
+
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-400 mb-1">Avaria (Produtos)</span>
+              <span className="text-purple-400 font-bold text-sm">{formatCurrency(damageTotal)}</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -102,7 +114,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, setActivePage, oc
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 w-full bg-slate-900 text-white z-20 flex items-center justify-between p-4 shadow-md">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Truck size={18} className="text-white" />
           </div>
           <span className="font-bold text-lg text-white">LogiFix - byTonho</span>

@@ -14,9 +14,11 @@ export interface Carrier {
 export enum OccurrenceStatus {
   OPEN = 'Em Aberto',
   ANALYSIS = 'Aguardando Resposta',
+  IN_TREATMENT = 'Em Tratamento',
   BLOCK_RETURN = 'Bloqueio/Devolução',
   FINANCE_AUDIT = 'Auditoria Financeira',
-  DONE = 'Concluído'
+  DONE = 'Concluído',
+  ARCHIVED = 'Arquivado' // New status for manually archived items
 }
 
 export interface TimelineEvent {
@@ -34,7 +36,7 @@ export interface Occurrence {
   recipientName: string;
   state: string; // UF
   status: OccurrenceStatus;
-  
+
   // Dates
   createdAt: string; // System creation date
   occurrenceDate: string; // User defined date of the problem
@@ -43,7 +45,7 @@ export interface Occurrence {
   // Values
   invoiceValue: number;
   freightValue: number;
-  
+
   // Complex Logic Flags
   flagResent: boolean;      // Produto reenviado?
   resentCarrierId?: string; // Se reenviado, qual transp?
@@ -51,7 +53,10 @@ export interface Occurrence {
 
   flagInvoiceDispute: boolean; // Contestar fatura?
   flagLostReturn: boolean;  // Extravio na devolução?
-  
+  flagDamage: boolean;      // Avaria?
+
+  responsibleUsers?: string[]; // IDs of responsible users
+
   notes: TimelineEvent[];
 }
 

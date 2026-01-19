@@ -7,8 +7,9 @@ import NewOccurrence from './pages/NewOccurrence';
 import Login from './pages/Login';
 import UsersPage from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
+import FinishedOccurrences from './pages/FinishedOccurrences';
 
-import { Carrier, Occurrence, User, AuditLog } from './types';
+import { Carrier, Occurrence, User, AuditLog, OccurrenceStatus } from './types';
 import { supabase } from './services/supabase';
 
 const App: React.FC = () => {
@@ -21,6 +22,9 @@ const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Navigation State
+  const [selectedOccurrenceId, setSelectedOccurrenceId] = useState<string | null>(null);
 
   // Auth & Data Fetching
   useEffect(() => {
@@ -116,6 +120,8 @@ const App: React.FC = () => {
         resentTrackingCode: o.resent_tracking_code,
         flagInvoiceDispute: o.flag_invoice_dispute,
         flagLostReturn: o.flag_lost_return,
+        flagDamage: o.flag_damage,
+        responsibleUsers: o.responsible_users || [],
         notes: (o.notes || [])
           .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
           .map((n: any) => ({
@@ -196,7 +202,27 @@ const App: React.FC = () => {
   };
 
   // Handlers
-  const addOccurrence = async (newOcc: Occurrence) => {
+  const addOccurrence = async (newOcc: Occurrence): Promise<{ success: boolean; duplicateId?: string }> => {
+    // Check for duplicate invoice number
+    const { data: existing } = await supabase
+      .from('occurrences')
+      .select('id')
+      .eq('invoice_number', newOcc.invoiceNumber)
+      .single();
+
+    if (existing) {
+      return { success: false, duplicateId: existing.id };
+    }
+
+    // Default Responsible Logic ('Carlos')
+    const carlos = users.find(u => u.name.includes('Carlos'));
+    if (carlos) {
+      if (!newOcc.responsibleUsers) newOcc.responsibleUsers = [];
+      if (!newOcc.responsibleUsers.includes(carlos.id)) {
+        newOcc.responsibleUsers.push(carlos.id);
+      }
+    }
+
     const { error: occError } = await supabase.from('occurrences').insert({
       id: newOcc.id,
       carrier_id: newOcc.carrierId,
@@ -212,7 +238,9 @@ const App: React.FC = () => {
       resent_carrier_id: newOcc.resentCarrierId,
       resent_tracking_code: newOcc.resentTrackingCode,
       flag_invoice_dispute: newOcc.flagInvoiceDispute,
-      flag_lost_return: newOcc.flagLostReturn
+      flag_lost_return: newOcc.flagLostReturn,
+      flag_damage: newOcc.flagDamage,
+      responsible_users: newOcc.responsibleUsers
     });
 
     if (!occError) {
@@ -227,8 +255,36 @@ const App: React.FC = () => {
         ));
       }
       await fetchOccurrences();
+      return { success: true };
     } else {
       console.error('Error adding occurrence:', occError);
+      return { success: false };
+    }
+  };
+
+  const restoreOccurrence = async (id: string) => {
+    // Find 'Carlos' to add as responsible
+    const carlos = users.find(u => u.name.includes('Carlos'));
+    let updates: any = { status: OccurrenceStatus.OPEN, finished_at: null };
+
+    if (carlos) {
+      // Need to fetch current responsible users first or just append? 
+      // For simplicity/performance, we might overwrite or we need to look up current occurrence from state
+      const currentOcc = occurrences.find(o => o.id === id);
+      let currentResponsibles = currentOcc?.responsibleUsers || [];
+      if (!currentResponsibles.includes(carlos.id)) {
+        updates.responsible_users = [...currentResponsibles, carlos.id];
+      }
+    }
+
+    const { error } = await supabase
+      .from('occurrences')
+      .update(updates)
+      .eq('id', id);
+
+    if (!error) {
+      await fetchOccurrences();
+      logAction('Restaurou Ocorrência', `Reabriu a ocorrência ${id}`);
     }
   };
 
@@ -269,6 +325,8 @@ const App: React.FC = () => {
         resent_tracking_code: updated.resentTrackingCode,
         flag_invoice_dispute: updated.flagInvoiceDispute,
         flag_lost_return: updated.flagLostReturn,
+        flag_damage: updated.flagDamage,
+        responsible_users: updated.responsibleUsers,
         finished_at: updated.status === 'Concluído' ? new Date().toISOString() : null
       })
       .eq('id', updated.id);
@@ -336,7 +394,18 @@ const App: React.FC = () => {
             addNote={addNote}
             updateNote={updateNote}
             currentUser={currentUser}
+            users={users}
             logAction={logAction}
+            initialCardId={selectedOccurrenceId}
+            clearInitialCardId={() => setSelectedOccurrenceId(null)}
+          />
+        );
+      case 'finished-occurrences':
+        return (
+          <FinishedOccurrences
+            occurrences={occurrences}
+            carriers={carriers}
+            restoreOccurrence={restoreOccurrence}
           />
         );
       case 'carriers':
@@ -358,6 +427,10 @@ const App: React.FC = () => {
             setActivePage={setActivePage}
             currentUser={currentUser}
             logAction={logAction}
+            onGoToOccurrence={(id) => {
+              setSelectedOccurrenceId(id);
+              setActivePage('kanban');
+            }}
           />
         );
       case 'users':
