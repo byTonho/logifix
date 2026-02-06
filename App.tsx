@@ -67,9 +67,8 @@ const App: React.FC = () => {
         password: '',
       });
 
-      if (profile?.role === 'Master') {
-        await fetchAllProfiles();
-      }
+      // Always fetch profiles so we can show responsible names
+      await fetchAllProfiles();
 
       // Load initial data
       await Promise.all([
@@ -105,16 +104,16 @@ const App: React.FC = () => {
       setOccurrences(data.map(o => ({
         id: o.id,
         carrierId: o.carrier_id,
-        trackingCode: o.tracking_code,
-        invoiceNumber: o.invoice_number,
-        recipientName: o.recipient_name,
-        state: o.state,
+        trackingCode: o.tracking_code || '',
+        invoiceNumber: o.invoice_number || '',
+        recipientName: o.recipient_name || '',
+        state: o.state || '',
         status: o.status,
         createdAt: o.created_at,
         occurrenceDate: o.occurrence_date,
         finishedAt: o.finished_at,
-        invoiceValue: parseFloat(o.invoice_value),
-        freightValue: parseFloat(o.freight_value),
+        invoiceValue: parseFloat(o.invoice_value) || 0,
+        freightValue: parseFloat(o.freight_value) || 0,
         flagResent: o.flag_resent,
         resentCarrierId: o.resent_carrier_id,
         resentTrackingCode: o.resent_tracking_code,
@@ -310,6 +309,16 @@ const App: React.FC = () => {
     }
   };
 
+  const deleteNote = async (noteId: string) => {
+    const { error } = await supabase
+      .from('occurrence_notes')
+      .delete()
+      .eq('id', noteId);
+    if (!error) {
+      await fetchOccurrences();
+    }
+  };
+
   const updateOccurrence = async (updated: Occurrence) => {
     const { error } = await supabase
       .from('occurrences')
@@ -395,6 +404,7 @@ const App: React.FC = () => {
             deleteOccurrence={deleteOccurrence}
             addNote={addNote}
             updateNote={updateNote}
+            deleteNote={deleteNote}
             currentUser={currentUser}
             users={users}
             logAction={logAction}
@@ -408,6 +418,8 @@ const App: React.FC = () => {
             occurrences={occurrences}
             carriers={carriers}
             restoreOccurrence={restoreOccurrence}
+            users={users}
+            currentUser={currentUser}
           />
         );
       case 'carriers':

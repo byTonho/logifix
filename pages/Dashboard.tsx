@@ -16,16 +16,43 @@ const Dashboard: React.FC<DashboardProps> = ({ occurrences, carriers }) => {
 
   // Calculations
   const totalIssues = occurrences.length;
-  const activeIssues = occurrences.filter(o => o.status !== OccurrenceStatus.DONE).length;
-  const financialDisputes = occurrences.filter(o => o.flagInvoiceDispute).length;
-  const lostReturns = occurrences.filter(o => o.flagLostReturn).length;
-  const completedIssues = occurrences.filter(o => o.status === OccurrenceStatus.DONE).length;
+  // Active means NOT Done AND NOT Archived AND no finishedAt date
+  const activeIssues = occurrences.filter(o =>
+    o.status !== OccurrenceStatus.DONE &&
+    o.status !== OccurrenceStatus.ARCHIVED &&
+    !o.finishedAt
+  ).length;
+
+  const completedIssues = occurrences.filter(o =>
+    o.status === OccurrenceStatus.DONE ||
+    o.status === OccurrenceStatus.ARCHIVED ||
+    !!o.finishedAt
+  ).length;
+
+  // KPIs (Active Only)
+  // We check !o.finishedAt as a robust fallback in case status string has discrepancies
+  const isActive = (o: Occurrence) =>
+    o.status !== OccurrenceStatus.DONE &&
+    o.status !== OccurrenceStatus.ARCHIVED &&
+    !o.finishedAt;
+
+  const financialDisputes = occurrences.filter(o =>
+    o.flagInvoiceDispute && isActive(o)
+  ).length;
+
+  const lostReturns = occurrences.filter(o =>
+    o.flagLostReturn && isActive(o)
+  ).length;
+
+  const damageIssues = occurrences.filter(o =>
+    o.flagDamage && isActive(o)
+  ).length;
 
   // Data for Charts
   const dataByCarrier = carriers.map(c => ({
     name: c.name,
     total: occurrences.filter(o => o.carrierId === c.id).length,
-    active: occurrences.filter(o => o.carrierId === c.id && o.status !== OccurrenceStatus.DONE).length
+    active: occurrences.filter(o => o.carrierId === c.id && o.status !== OccurrenceStatus.DONE && o.status !== OccurrenceStatus.ARCHIVED).length
   }));
 
   const dataByStatus = Object.values(OccurrenceStatus).map(status => ({
@@ -58,26 +85,26 @@ const Dashboard: React.FC<DashboardProps> = ({ occurrences, carriers }) => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Total Ocorrências</p>
-              <h3 className="text-3xl font-bold text-slate-900 mt-2">{totalIssues}</h3>
+              <p className="text-sm font-medium text-slate-500">Ocorrências Ativas</p>
+              <h3 className="text-3xl font-bold text-slate-900 mt-2">{activeIssues}</h3>
             </div>
             <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
               <TrendingUp size={24} />
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-slate-600">{activeIssues} ativas no momento</span>
+            <span className="text-slate-600">{totalIssues} Ocorrências cadastradas</span>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Ocorrências Concluídas</p>
+              <p className="text-sm font-medium text-slate-500">Concluídas</p>
               <h3 className="text-3xl font-bold text-slate-900 mt-2">{completedIssues}</h3>
             </div>
             <div className="p-3 bg-green-50 text-green-600 rounded-lg">
@@ -85,14 +112,14 @@ const Dashboard: React.FC<DashboardProps> = ({ occurrences, carriers }) => {
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-slate-600">Casos resolvidos com sucesso</span>
+            <span className="text-slate-600">Histórico Total</span>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Contestar Fatura</p>
+              <p className="text-sm font-medium text-slate-500">Contestar Frete</p>
               <h3 className="text-3xl font-bold text-slate-900 mt-2">{financialDisputes}</h3>
             </div>
             <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
@@ -100,14 +127,14 @@ const Dashboard: React.FC<DashboardProps> = ({ occurrences, carriers }) => {
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-amber-600 font-medium">Ação Financeira Necessária</span>
+            <span className="text-slate-500">Ação Financeira (Ativas)</span>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Extravios (Devolução)</p>
+              <p className="text-sm font-medium text-slate-500">Extravios</p>
               <h3 className="text-3xl font-bold text-slate-900 mt-2">{lostReturns}</h3>
             </div>
             <div className="p-3 bg-red-50 text-red-600 rounded-lg">
@@ -115,7 +142,22 @@ const Dashboard: React.FC<DashboardProps> = ({ occurrences, carriers }) => {
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-slate-600">Requer reembolso integral</span>
+            <span className="text-slate-500">Reembolso (Ativas)</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Avarias</p>
+              <h3 className="text-3xl font-bold text-slate-900 mt-2">{damageIssues}</h3>
+            </div>
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+              <PackageX size={24} />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center text-sm">
+            <span className="text-slate-500">Danificados (Ativas)</span>
           </div>
         </div>
       </div>

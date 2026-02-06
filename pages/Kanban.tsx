@@ -17,6 +17,7 @@ interface KanbanProps {
   logAction: (action: string, details: string) => void;
   initialCardId?: string | null;
   clearInitialCardId?: () => void;
+  deleteNote?: (noteId: string) => Promise<void>;
 }
 
 const Kanban: React.FC<KanbanProps> = ({
@@ -30,7 +31,8 @@ const Kanban: React.FC<KanbanProps> = ({
   users = [], // Default empty array
   logAction,
   initialCardId,
-  clearInitialCardId
+  clearInitialCardId,
+  deleteNote
 }) => {
   const [selectedCarrierId, setSelectedCarrierId] = useState<string>('all');
   const [selectedResponsibleId, setSelectedResponsibleId] = useState<string>('all'); // New Filter State
@@ -247,6 +249,7 @@ const Kanban: React.FC<KanbanProps> = ({
 
   // States for Modals
   const [showFinishModal, setShowFinishModal] = useState(false);
+  const [showDeleteNoteModal, setShowDeleteNoteModal] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const confirmFinish = () => {
@@ -832,18 +835,68 @@ const Kanban: React.FC<KanbanProps> = ({
                         <>
                           <p className="text-sm text-slate-900 mb-1">{note.text}</p>
                           <span className="text-xs text-slate-400">{formatDateTime(note.date)} • {note.user}</span>
-                          <button
-                            onClick={() => startEditNote(note.id, note.text)}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-500"
-                          >
-                            <Edit2 size={12} />
-                          </button>
+
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1">
+                            <button
+                              onClick={() => startEditNote(note.id, note.text)}
+                              className="text-slate-400 hover:text-blue-500 transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            {/* Only Master can delete notes */}
+                            {currentUser.role === 'Master' && (
+                              <button
+                                onClick={() => setShowDeleteNoteModal(note.id)}
+                                className="text-slate-400 hover:text-red-500 transition-colors"
+                                title="Excluir"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
                         </>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
+
+              {/* Delete Note Modal */}
+              {showDeleteNoteModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                  <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in">
+                    <div className="p-6 text-center">
+                      <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Trash2 size={24} />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800 mb-2">Excluir Comentário?</h3>
+                      <p className="text-slate-500 text-sm mb-6">
+                        Essa ação não pode ser desfeita. O comentário será removido permanentemente do histórico.
+                      </p>
+                      <div className="flex gap-3 justify-center">
+                        <button
+                          onClick={() => setShowDeleteNoteModal(null)}
+                          className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (deleteNote && showDeleteNoteModal) {
+                              deleteNote(showDeleteNoteModal);
+                              setShowDeleteNoteModal(null);
+                            }
+                          }}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors"
+                        >
+                          Sim, Excluir
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 bg-slate-50 border-t border-slate-200">
                 <div className="flex gap-2">

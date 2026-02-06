@@ -1,6 +1,6 @@
 import React from 'react';
 import { Truck, LayoutDashboard, Trello, PackagePlus, Menu, X, Users, ScrollText, LogOut, UserCircle, CheckCircle } from 'lucide-react';
-import { Occurrence, User, UserRole } from '../types';
+import { Occurrence, User, UserRole, OccurrenceStatus } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,17 +14,22 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, activePage, setActivePage, occurrences = [], currentUser, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
-  // Calculate financial totals
+  // Calculate financial totals (Active Only)
+  const isActive = (o: Occurrence) =>
+    o.status !== OccurrenceStatus.DONE &&
+    o.status !== OccurrenceStatus.ARCHIVED &&
+    !o.finishedAt;
+
   const disputeTotal = occurrences
-    .filter(o => o.flagInvoiceDispute)
+    .filter(o => o.flagInvoiceDispute && isActive(o))
     .reduce((acc, curr) => acc + (curr.freightValue || 0), 0);
 
   const lostTotal = occurrences
-    .filter(o => o.flagLostReturn)
+    .filter(o => o.flagLostReturn && isActive(o))
     .reduce((acc, curr) => acc + (curr.invoiceValue || 0), 0);
 
   const damageTotal = occurrences
-    .filter(o => o.flagDamage)
+    .filter(o => o.flagDamage && isActive(o))
     .reduce((acc, curr) => acc + (curr.invoiceValue || 0), 0);
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
